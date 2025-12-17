@@ -1,0 +1,63 @@
+{
+    "title": "Asset",
+    "type": "object",
+    "description": "Data in the Elasticsearch index for an asset",
+    "properties": {
+        "id": {
+            "type": "string",
+            "description": "Internal ID exposed by the API. This is NOT the _id automatically created by ES"
+        },
+        "driverId": {
+            "type": "string",
+            "description": "Storage driver id used for storing the asset data"
+        },
+        "storageType": {
+            "type": "string",
+            "enum": ["gcp", "file"],
+            "description": "Storage driver to use for storing the asset data. Currently-supported values: 'file' or 'gcp'"
+        },
+        "type": {
+            "type": "string",
+            "description": "User-provided content type (such as 'image/jpeg' or 'application/json')"
+        },
+        "userId": {
+            "type": "string",
+            "description": "Identifies the user an asset belongs to. This is an arbitrary string"
+        },
+        "tenantId": {
+            "type": "string",
+            "description": "Identifies the tenant an asset belongs to. This is an arbitrary string"
+        },
+        "virtualFolder": {
+            "type": "string",
+            "description": "Part of the virtualPath associated to the folder (used for listings)"
+        },
+        "virtualPath": {
+            "type": "string",
+            "description": "Public, user-provided full path for the asset"
+        },
+        "storagePath": {
+            "type": "string",
+            "description": "Storage driver-specific pathname (GPC path, local file path, etc)"
+        },
+        "extractedContentStoragePath": {
+            "type": "string",
+            "description": "Storage driver-specific pathname for extracted content (GPC path, local file path, etc)"
+        },
+        "creationTimestamp": {
+            "type": "string",
+            "description": "Asset creation time as an ISO 8601 timestamp"
+        },
+        "tags": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "metadata": {
+            "type": "object",
+            "description": "Arbitrary metadata for the asset"
+        }
+    },
+    "required": ["id", "storageType", "type", "tenantId", "virtualPath", "storagePath", "creationTimestamp"]
+}

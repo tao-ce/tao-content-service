@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "CommonJS",
+        "checkJs": true,
+        "allowJs": true,
+        "noEmit": true,
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "noImplicitAny": false,
+        "forceConsistentCasingInFileNames": true,
+        "types": ["jest"],
+        "paths": {
+            "#model/*": ["./model/*"],
+            "#*": ["./src/*"]
+        }
+    },
+    "include": ["src/**/*.js"],
+    "exclude": ["node_modules"]
+}

@@ -1,0 +1,1307 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "version": "1.0.0",
+        "title": "API specification for Template API"
+    },
+    "paths": {
+        "/api/v1/health": {
+            "get": {
+                "description": "Health check endpoint",
+                "tags": ["Health"],
+                "responses": {
+                    "200": {
+                        "description": "Health status",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/tenants/{tenantId}/assets": {
+            "get": {
+                "summary": "Get assets by IDs",
+                "description": "Retrieves one or more assets by their IDs. The id parameter can be a single value or an array.",
+                "tags": ["Assets"],
+                "parameters": [
+                    {
+                        "name": "tenantId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Tenant ID",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Asset ID(s). Can be a single value or an array.",
+                        "required": false,
+                        "schema": {
+                            "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }]
+                        }
+                    },
+                    {
+                        "name": "ttl",
+                        "in": "query",
+                        "description": "Time to live for signed URLs in milliseconds",
+                        "required": false,
+                        "schema": { "type": "integer" }
+                    },
+                    {
+                        "name": "routeViaCdn",
+                        "in": "query",
+                        "description": "Route URL via CDN",
+                        "required": false,
+                        "schema": { "type": "boolean" }
+                    },
+                    {
+                        "name": "driverId",
+                        "in": "query",
+                        "description": "Storage driver ID",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "signUrl",
+                        "in": "query",
+                        "description": "Whether to sign the URL (default: true)",
+                        "required": false,
+                        "schema": { "type": "boolean" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of asset responses",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/DownloadAssetResponse"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/badRequestResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/tenants/{tenantId}/assets/{id}": {
+            "get": {
+                "summary": "Get asset by ID",
+                "description": "Retrieves a single asset by ID. Can return JSON response or redirect to the asset URL.",
+                "tags": ["Assets"],
+                "parameters": [
+                    {
+                        "name": "tenantId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Tenant ID",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Asset ID",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "redirect",
+                        "in": "query",
+                        "description": "If true, redirects to the asset URL instead of returning JSON",
+                        "required": false,
+                        "schema": { "type": "boolean" }
+                    },
+                    {
+                        "name": "ttl",
+                        "in": "query",
+                        "description": "Time to live for signed URLs in milliseconds",
+                        "required": false,
+                        "schema": { "type": "integer" }
+                    },
+                    {
+                        "name": "routeViaCdn",
+                        "in": "query",
+                        "description": "Route URL via CDN",
+                        "required": false,
+                        "schema": { "type": "boolean" }
+                    },
+                    {
+                        "name": "driverId",
+                        "in": "query",
+                        "description": "Storage driver ID",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "signUrl",
+                        "in": "query",
+                        "description": "Whether to sign the URL (default: true)",
+                        "required": false,
+                        "schema": { "type": "boolean" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Asset response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DownloadAssetResponse"
+                                }
+                            }
+                        }
+                    },
+                    "302": {
+                        "description": "Redirect to asset URL (when redirect=true)"
+                    },
+                    "404": {
+                        "description": "Asset not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": { "type": "string" }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Cannot determine asset public URL",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": { "type": "string" }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/badRequestResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/browse/{tenantId}/{virtualPath}": {
+            "get": {
+                "summary": "Browse tenant directory",
+                "description": "Lists assets and subdirectories in the specified virtual path",
+                "tags": ["Browse"],
+                "parameters": [
+                    {
+                        "name": "tenantId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Tenant ID",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "virtualPath",
+                        "in": "path",
+                        "required": true,
+                        "description": "Virtual path to browse (supports wildcard patterns)",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "userId",
+                        "in": "query",
+                        "description": "User ID to filter assets",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number (zero-based, default: 0)",
+                        "required": false,
+                        "schema": { "type": "integer" }
+                    },
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "description": "Page size (default: 10)",
+                        "required": false,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Browse response with assets and directories",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BrowseResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/badRequestResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/download/extracted-contents/{tenantId}/{virtualPath}": {
+            "get": {
+                "summary": "Get extracted content",
+                "description": "Retrieves the extracted content for an asset",
+                "tags": ["Download"],
+                "parameters": [
+                    {
+                        "name": "tenantId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Tenant ID",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "virtualPath",
+                        "in": "path",
+                        "required": true,
+                        "description": "Virtual path to the asset (supports wildcard patterns)",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "driverId",
+                        "in": "query",
+                        "description": "Storage driver ID",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Extracted content as string",
+                        "content": {
+                            "text/plain": {
+                                "schema": { "type": "string" }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Asset not found or no extracted content available",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": { "type": "string" }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/badRequestResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/download/{tenantId}/{virtualPath}": {
+            "get": {
+                "summary": "Get download URL",
+                "description": "Retrieves a signed URL or public URL for downloading an asset. Can return JSON response or redirect to the URL.",
+                "tags": ["Download"],
+                "parameters": [
+                    {
+                        "name": "tenantId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Tenant ID",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "virtualPath",
+                        "in": "path",
+                        "required": true,
+                        "description": "Virtual path to the asset (supports wildcard patterns)",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "redirect",
+                        "in": "query",
+                        "description": "If true, redirects to the asset URL instead of returning JSON",
+                        "required": false,
+                        "schema": { "type": "boolean" }
+                    },
+                    {
+                        "name": "ttl",
+                        "in": "query",
+                        "description": "Time to live for signed URLs in milliseconds",
+                        "required": false,
+                        "schema": { "type": "integer" }
+                    },
+                    {
+                        "name": "routeViaCdn",
+                        "in": "query",
+                        "description": "Route URL via CDN",
+                        "required": false,
+                        "schema": { "type": "boolean" }
+                    },
+                    {
+                        "name": "driverId",
+                        "in": "query",
+                        "description": "Storage driver ID",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "signUrl",
+                        "in": "query",
+                        "description": "Whether to sign the URL (default: true)",
+                        "required": false,
+                        "schema": { "type": "boolean" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Asset response with download URL",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DownloadAssetResponse"
+                                }
+                            }
+                        }
+                    },
+                    "302": {
+                        "description": "Redirect to asset URL (when redirect=true)"
+                    },
+                    "404": {
+                        "description": "Asset not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": { "type": "string" }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Cannot determine asset public URL",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": { "type": "string" }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/badRequestResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/upload/{tenantId}/{virtualPath}": {
+            "post": {
+                "summary": "Upload binary data",
+                "description": "Uploads binary data to storage. The virtualPath parameter is optional and will be auto-generated if not provided. Requires Content-Type and X-UserId headers.",
+                "tags": ["Upload"],
+                "parameters": [
+                    {
+                        "name": "tenantId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Tenant ID",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "virtualPath",
+                        "in": "path",
+                        "required": true,
+                        "description": "Virtual path for the asset",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "driverId",
+                        "in": "query",
+                        "description": "Storage driver ID",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "ttl",
+                        "in": "query",
+                        "description": "Time to live for signed URLs in milliseconds",
+                        "required": false,
+                        "schema": { "type": "integer" }
+                    },
+                    {
+                        "name": "routeViaCdn",
+                        "in": "query",
+                        "description": "Route URL via CDN",
+                        "required": false,
+                        "schema": { "type": "boolean" }
+                    },
+                    {
+                        "name": "signUrl",
+                        "in": "query",
+                        "description": "Whether to sign the URL (default: true)",
+                        "required": false,
+                        "schema": { "type": "boolean" }
+                    },
+                    {
+                        "name": "assetId",
+                        "in": "query",
+                        "description": "Asset ID (if provided, will use this ID instead of generating a new one)",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "filePath",
+                        "in": "query",
+                        "description": "Desired file path for storage (without tenantId). If omitted and assetId is provided, it will be derived from the existing asset's storagePath",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "extractContent",
+                        "in": "query",
+                        "description": "Whether to extract content from the uploaded file (e.g., extract text from PDF)",
+                        "required": false,
+                        "schema": { "type": "boolean" }
+                    },
+                    {
+                        "name": "Content-Type",
+                        "in": "header",
+                        "description": "Content type of the uploaded file (e.g., 'image/jpeg', 'application/pdf')",
+                        "required": true,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "X-UserId",
+                        "in": "header",
+                        "description": "User ID who is uploading the file",
+                        "required": true,
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "description": "Binary file data",
+                    "content": {
+                        "application/octet-stream": {
+                            "schema": { "type": "string", "format": "binary" }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Asset created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DownloadAssetResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (missing Content-Type or X-UserId header, invalid tenantId or virtualPath)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/badRequestResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/serverErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/upload/multipart/{tenantId}/{virtualPath}": {
+            "post": {
+                "summary": "Upload binary data and JSON metadata",
+                "description": "Uploads binary data to storage. The virtualPath parameter is optional and will be auto-generated if not provided. Requires X-UserId header.",
+                "tags": ["Upload"],
+                "parameters": [
+                    {
+                        "name": "tenantId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Tenant ID",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "virtualPath",
+                        "in": "path",
+                        "required": true,
+                        "description": "Virtual path for the asset",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "driverId",
+                        "in": "query",
+                        "description": "Storage driver ID",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "ttl",
+                        "in": "query",
+                        "description": "Time to live for signed URLs in milliseconds",
+                        "required": false,
+                        "schema": { "type": "integer" }
+                    },
+                    {
+                        "name": "routeViaCdn",
+                        "in": "query",
+                        "description": "Route URL via CDN",
+                        "required": false,
+                        "schema": { "type": "boolean" }
+                    },
+                    {
+                        "name": "signUrl",
+                        "in": "query",
+                        "description": "Whether to sign the URL (default: true)",
+                        "required": false,
+                        "schema": { "type": "boolean" }
+                    },
+                    {
+                        "name": "assetId",
+                        "in": "query",
+                        "description": "Asset ID (if provided, will use this ID instead of generating a new one)",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "filePath",
+                        "in": "query",
+                        "description": "Desired file path for storage (without tenantId). If omitted and assetId is provided, it will be derived from the existing asset's storagePath",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "extractContent",
+                        "in": "query",
+                        "description": "Whether to extract content from the uploaded file (e.g., extract text from PDF)",
+                        "required": false,
+                        "schema": { "type": "boolean" }
+                    },
+                    {
+                        "name": "Content-Type",
+                        "in": "header",
+                        "description": "Should only be multipart/form-data",
+                        "required": true,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "X-UserId",
+                        "in": "header",
+                        "description": "User ID who is uploading the file",
+                        "required": true,
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "description": "FormData consisting of binary file and JSON metadata",
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "file": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "metadata": {
+                                        "type": "object"
+                                    }
+                                },
+                                "required": ["file"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Asset created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DownloadAssetResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (missing Content-Type or X-UserId header, invalid tenantId or virtualPath)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/badRequestResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/serverErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/content/{tenantId}/{deliveryId}/{itemPath}": {
+            "get": {
+                "summary": "Get item content",
+                "description": "Retrieves content for a delivery item. Requires JWT authentication.",
+                "tags": ["Content"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "tenantId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Tenant ID (must match the JWT token tenant_id)",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "deliveryId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Delivery ID",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "itemPath",
+                        "in": "path",
+                        "required": true,
+                        "description": "Item path (supports wildcard patterns)",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "driverId",
+                        "in": "query",
+                        "description": "Storage driver ID",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Item content as JSON",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (missing or invalid tenantId, deliveryId, or itemPath)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/badRequestResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authorization error (tenantId does not match JWT token)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": { "type": "string" }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/serverErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/files/{virtualFolder}": {
+            "get": {
+                "summary": "Get references of files in a specified folder",
+                "description": "This is a non-tenant-specific endpoint.",
+                "tags": ["Files"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "virtualFolder",
+                        "in": "path",
+                        "required": true,
+                        "description": "Folder virtual path",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "maxResults",
+                        "in": "query",
+                        "description": "Maximum number of results to return",
+                        "required": false,
+                        "schema": { "type": "number" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of asset responses",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/DownloadAssetResponse"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (missing or invalid virtualFolder)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/badRequestResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/serverErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/files/stream/{tenantId}/{storagePath}": {
+            "get": {
+                "summary": "Stream file content",
+                "tags": ["Files"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "tenantId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Tenant ID (must match the JWT token tenant_id)",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "storagePath",
+                        "in": "path",
+                        "required": true,
+                        "description": "File storage path",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "driverId",
+                        "in": "query",
+                        "description": "Storage driver ID",
+                        "required": true,
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "File contents as a stream"
+                    },
+                    "400": {
+                        "description": "Bad request (missing or invalid tenantId)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/badRequestResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/serverErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/files/move/{tenantId}": {
+            "post": {
+                "summary": "Move a stored file's location",
+                "tags": ["Files"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "tenantId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Tenant ID (must match the JWT token tenant_id)",
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "virtualPath": {
+                                        "type": "string",
+                                        "description": "Virtual path of file (uniquely identifies the file within its tenant)"
+                                    },
+                                    "newVirtualPath": {
+                                        "type": "string",
+                                        "description": "Virtual path of file after moving"
+                                    },
+                                    "newStoragePath": {
+                                        "type": "string",
+                                        "description": "Storage path of file after moving (optional)"
+                                    }
+                                },
+                                "required": ["virtualPath", "newVirtualPath"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Empty response"
+                    },
+                    "400": {
+                        "description": "Bad request (missing or invalid tenantId or virtualPath or newVirtualPath)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/badRequestResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/serverErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "PagedRequest": {
+                "type": "object",
+                "properties": {
+                    "pageSize": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "pageNumber": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "sort": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SortDefinition"
+                        }
+                    },
+                    "response": {
+                        "$ref": "#/components/schemas/ResponseDefinition"
+                    },
+                    "textSearch": {
+                        "$ref": "#/components/schemas/TextSearchDefinition"
+                    },
+                    "filters": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/FilterDefinition"
+                        }
+                    },
+                    "searchAfter": {
+                        "type": "string"
+                    }
+                }
+            },
+            "ResponseDefinition": {
+                "type": "object",
+                "properties": {
+                    "fields": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "flatResponse": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "PagedResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "object"
+                    },
+                    "totalResults": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "lastId": {
+                        "type": "string"
+                    }
+                }
+            },
+            "SortDefinition": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": ["ASC", "DESC"]
+                    },
+                    "field": {
+                        "type": "string"
+                    }
+                }
+            },
+            "FilterDefinition": {
+                "type": "object",
+                "properties": {
+                    "filterGroup": {
+                        "type": "string"
+                    },
+                    "field": {
+                        "type": "string"
+                    },
+                    "not_included": {
+                        "type": "boolean"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": ["terms", "range", "exist", "prefix", "wildcard"]
+                    },
+                    "values": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "fromValue": {
+                        "type": "string"
+                    },
+                    "toValue": {
+                        "type": "string"
+                    },
+                    "fromValueIncluded": {
+                        "type": "boolean"
+                    },
+                    "toValueInclued": {
+                        "type": "boolean"
+                    },
+                    "value": {
+                        "type": "string"
+                    }
+                }
+            },
+            "TextSearchDefinition": {
+                "type": "object",
+                "properties": {
+                    "fields": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "fuzziness": {
+                        "type": "boolean"
+                    },
+                    "value": {
+                        "type": "string"
+                    }
+                }
+            },
+            "response": {
+                "additionalProperties": false,
+                "properties": {
+                    "responseId": {
+                        "description": "Qti response identifier, as defined on authoring tool.",
+                        "type": "string"
+                    },
+                    "responseType": {
+                        "type": "string"
+                    },
+                    "responseValue": {
+                        "description": "Value of the repsonse.",
+                        "type": "string"
+                    },
+                    "docDownloadUrl": {
+                        "description": "Signed url of uploaded file",
+                        "nullable": true,
+                        "type": "string"
+                    }
+                },
+                "required": ["docDownloadUrl", "responseId", "responseType", "responseValue"],
+                "title": "Response from test taker",
+                "type": "object"
+            },
+            "notFoundResponse": {
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "x-nullable": false
+                    }
+                },
+                "required": ["message"],
+                "type": "object"
+            },
+            "badRequestResponse": {
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "x-nullable": false
+                    }
+                },
+                "required": ["message"],
+                "type": "object"
+            },
+            "serverErrorResponse": {
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "x-nullable": false
+                    }
+                },
+                "required": ["message"],
+                "type": "object"
+            },
+            "principal": {
+                "type": "string"
+            },
+            "AssetResponse": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Asset id"
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "User-provided content type (e.g., 'image/jpeg')"
+                    },
+                    "tenantId": {
+                        "type": "string",
+                        "description": "ID for the tenant an asset belongs to"
+                    },
+                    "driverId": {
+                        "type": "string",
+                        "description": "Storage driver ID used for storing the asset"
+                    },
+                    "userId": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "ID for the user an asset belongs to (or null)"
+                    },
+                    "creationTimestamp": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Asset creation timestamp (ISO 8601)"
+                    },
+                    "virtualPath": {
+                        "type": "string",
+                        "description": "Public, user-provided asset full path"
+                    },
+                    "storagePath": {
+                        "type": "string",
+                        "description": "Internal path to the storage location"
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "description": "Free-form metadata of the asset"
+                    }
+                },
+                "required": ["id", "type", "tenantId", "driverId", "creationTimestamp", "virtualPath", "storagePath"]
+            },
+            "DownloadAssetResponse": {
+                "type": "object",
+                "properties": {
+                    "asset": {
+                        "$ref": "#/components/schemas/AssetResponse"
+                    },
+                    "publicUrl": {
+                        "type": "string",
+                        "description": "Public URL to use for downloading the asset"
+                    },
+                    "streamUrl": {
+                        "type": "string",
+                        "description": "API URL to call to stream the asset"
+                    }
+                },
+                "required": ["asset", "publicUrl"]
+            },
+            "PaginationResponse": {
+                "type": "object",
+                "properties": {
+                    "pageNumber": {
+                        "type": "integer",
+                        "description": "Number for the current page (zero-based)"
+                    },
+                    "pageSize": {
+                        "type": "integer",
+                        "description": "Items per page"
+                    },
+                    "totalItems": {
+                        "type": "integer",
+                        "description": "Total items in the collection being paginated"
+                    },
+                    "totalPages": {
+                        "type": "integer",
+                        "description": "Total pages to fetch to traverse all items"
+                    }
+                },
+                "required": ["pageNumber", "pageSize", "totalItems", "totalPages"]
+            },
+            "BrowseResponse": {
+                "type": "object",
+                "properties": {
+                    "pagination": {
+                        "$ref": "#/components/schemas/PaginationResponse"
+                    },
+                    "directories": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "integer"
+                        },
+                        "description": "Asset count per directory"
+                    },
+                    "assets": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AssetResponse"
+                        }
+                    }
+                },
+                "required": ["pagination", "directories", "assets"]
+            }
+        },
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "description": "JWT token authentication (Bearer token)"
+            }
+        }
+    }
+}

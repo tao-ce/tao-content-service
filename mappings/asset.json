@@ -1,0 +1,101 @@
+{
+    "settings": {
+        "index": {
+            "number_of_shards": 4,
+            "number_of_replicas": 0
+        }
+    },
+    "mappings": {
+        "properties": {
+            "id": {
+                "type": "keyword",
+                "meta": {
+                    "description": "Internal ID exposed by the API",
+                    "description-detail": "This is NOT the _id automatically created by ES"
+                }
+            },
+            "driverId": {
+                "type": "keyword",
+                "meta": {
+                    "description": "Storage driver id used for storing the asset data",
+                    "description-detail": "Must match an id from the app's drivers config"
+                }
+            },
+            "storageType": {
+                "type": "keyword",
+                "meta": {
+                    "description": "Storage driver to use for storing the asset data",
+                    "description-detail": "Currently-supported values: 'local' or 'gcp'"
+                }
+            },
+            "type": {
+                "type": "keyword",
+                "meta": {
+                    "description": "TBD, probably a user-provided mime type"
+                }
+            },
+            "userId": {
+                "type": "keyword",
+                "meta": {
+                    "description": "Identifies the user an asset belongs to",
+                    "description-detail": "This is an arbitrary string"
+                }
+            },
+            "tenantId": {
+                "type": "keyword",
+                "meta": {
+                    "description": "Identifies the tenant an asset belongs to",
+                    "description-detail": "This is an arbitrary string"
+                }
+            },
+            "virtualFolder": {
+                "type": "keyword",
+                "meta": {
+                    "description": "Part of the virtualPath associated to the folder",
+                    "description-detail": "This is used to ease listing assets per directory"
+                }
+            },
+            "virtualPath": {
+                "type": "keyword",
+                "fields": {
+                    "search": {
+                        "type": "text"
+                    }
+                },
+                "meta": {
+                    "description": "Public, user-provided full path for the asset"
+                }
+            },
+            "storagePath": {
+                "type": "keyword",
+                "meta": {
+                    "description": "Pathname usable for retrieving data",
+                    "description-detail": "Typically this will be a local file path",
+                    "description-detail2": "Storage driver-specific (GPC path, local etc)"
+                }
+            },
+            "extractedContentStoragePath": {
+                "type": "keyword",
+                "meta": {
+                    "description": "Pathname usable for retrieving extracted content",
+                    "description-detail": "Typically this will be a local file path",
+                    "description-detail2": "Storage driver-specific (GPC path, local etc)"
+                }
+            },
+            "creationTimestamp": {
+                "type": "date",
+                "format": "strict_date_time",
+                "meta": {
+                    "description": "Asset creation time as an ISO 8601 timestamp"
+                }
+            },
+            "tags": {
+                "type": "keyword"
+            },
+            "metadata": {
+                "type": "object",
+                "enabled": false
+            }
+        }
+    }
+}
