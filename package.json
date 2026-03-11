@@ -43,7 +43,6 @@
   "dependencies": {
     "@elastic/elasticsearch": "^8.13.1",
     "@google-cloud/storage": "^7.7.0",
-    "@types/express": "^5.0.3",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "dotenv-flow": "^4.0.1",
@@ -61,6 +60,7 @@
     "@oat-sa/eslint-config-tao": "^4.0.1",
     "@oat-sa/prettier-config": "^2.0.0",
     "@types/jest": "^29.5.14",
+    "@types/express": "^5.0.3",
     "concurrently": "^8.2.2",
     "eslint": "^8",
     "eslint-config-prettier": "^10.1.5",
