@@ -133,25 +133,42 @@ class UploadController extends AbstractController {
         if (!validParameters) {
             return;
         }
+
         const { tenantId, userId, virtualPath, filePath } = validParameters;
         const { driverId, ttl, routeViaCdn, signUrl, assetId } = request.query || {};
         const contentType = request.headers['content-type'];
+        const extractContent = this.#hasExtractContentParameter(request);
+
+        let metadata;
+        const metadataHeader = this.getMetadataHeader(request);
+        if (metadataHeader) {
+            try {
+                metadata = JSON.parse(metadataHeader);
+            } catch (err) {
+                log.error({ err }, 'Invalid metadata header');
+                this.sendBadRequest(response, 'Invalid metadata header');
+
+                return;
+            }
+        }
 
         try {
-            const body = await this.#bodyReader.readFromRequest(request);
+            const data = extractContent ? await this.#bodyReader.readFromRequest(request) : request;
             const asset = await this.#uploadService.storeUpload({
+                // Note: referenceId is not passed for this endpoint
                 tenantId,
                 userId,
                 contentType,
                 virtualPath,
-                data: body,
-                extractContent: this.#hasExtractContentParameter(request),
+                data,
+                extractContent,
                 driverId,
                 assetId,
-                filePath
+                filePath,
+                metadata
             });
 
-            log.info(`Stored ${body.length} bytes body, type is ${contentType}`);
+            log.info(`Stored body, type is ${contentType}`);
             const publicUrl = await this.#uploadService.getPublicUrl({
                 asset,
                 ttl,

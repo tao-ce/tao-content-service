@@ -36,7 +36,7 @@ router.post(
     uploadController.createNewAssetMultipart.bind(uploadController)
 );
 
-router.post('/:tenantId/:virtualPath(*)', express.raw(), uploadController.createNewAsset.bind(uploadController));
+router.post('/:tenantId/:virtualPath(*)', uploadController.createNewAsset.bind(uploadController));
 
 router.use(errorHandler);
 

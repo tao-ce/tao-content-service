@@ -38,7 +38,7 @@ class StorageDriverInterface {
      *
      * @param {object} params
      * @param {string} params.tenantId Opaque string that may be used to cluster data
-     * @param {string} params.data Content to store
+     * @param {string|Buffer|(import('node:stream').Stream)} params.data Content to store
      * @param {string} [params.contentType] File MIME type
      * @param {string} [params.filePath]
      * @return {Promise<string>} Path used later as a param for getPublicUrl()
@@ -92,6 +92,17 @@ class StorageDriverInterface {
      */
     async moveFile(tenantId, storagePath, newStoragePath) {
         return Promise.reject(new Error('moveFile() must be overloaded by child classes'));
+    }
+
+    /**
+     * @summary Deletes a file from persistent storage
+     *
+     * @param {string} tenantId Tenant the data belongs to
+     * @param {string} storagePath Path identifying data within a storage
+     * @returns {Promise<void>}
+     */
+    async deleteFile(tenantId, storagePath) {
+        throw new Error('deleteFile() must be overloaded by child classes');
     }
 
     /**

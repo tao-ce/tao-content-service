@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const { log } = require('../logger.service');
 const { Storage } = require('@google-cloud/storage');
 const path = require('path');
+const { isReadable } = require('node:stream');
 
 class GoogleCloudStorageService extends StorageDriverInterface {
     /** @type string */
@@ -86,6 +87,29 @@ class GoogleCloudStorageService extends StorageDriverInterface {
      */
     async store({ tenantId, data, contentType, filePath }) {
         const storagePath = filePath ? this.#getPathData(tenantId, filePath) : this.#randomStoragePath(tenantId);
+
+        if (isReadable(data)) {
+            return new Promise((resolve, reject) => {
+                const file = this.#storage.bucket(this.#bucketName).file(storagePath.full);
+                const ws = file.createWriteStream({ contentType });
+
+                ws.on('finish', () => {
+                    log.info('Stored a new resource in GCP (stream) [%s]', storagePath.relative);
+                    resolve(storagePath.relative);
+                });
+
+                ws.on('error', err => {
+                    log.error(err, 'Error while storing new file in GCP (stream)');
+                    reject(err);
+                });
+
+                data.on('error', err => {
+                    ws.destroy(err);
+                });
+
+                data.pipe(ws);
+            });
+        }
 
         return this.#storage
             .bucket(this.#bucketName)
@@ -221,6 +245,26 @@ class GoogleCloudStorageService extends StorageDriverInterface {
             await fileRef.move(newFileRef);
         } catch (error) {
             throw new Error('Error moving file: ' + error.message, { cause: error });
+        }
+    }
+
+    /**
+     * @inheritDoc
+     *
+     * @return {Promise<void>}
+     */
+    async deleteFile(tenantId, storagePath) {
+        try {
+            const pathData = this.#getPathDataByStoragePath(storagePath);
+            const bucket = this.#storage.bucket(this.#bucketName);
+            const fileRef = bucket.file(pathData.full);
+
+            await fileRef.delete();
+
+            log.info('Deleted resource from GCP [%s]', storagePath);
+        } catch (error) {
+            log.error(error, 'Error deleting file from GCP');
+            throw error;
         }
     }
 

@@ -5,6 +5,7 @@
 
 const fs = require('fs');
 const FileStorageService = require('../../../src/infrastructure/services/storage/filestorage.service');
+const { Readable, PassThrough } = require('node:stream');
 
 // Mock logger used by implementation
 jest.mock('../../../src/infrastructure/services/logger.service', () => ({
@@ -27,7 +28,8 @@ jest.mock('fs', () => {
         promises: {
             stat: jest.fn(),
             mkdir: jest.fn(),
-            rename: jest.fn()
+            rename: jest.fn(),
+            unlink: jest.fn()
         }
     };
 });
@@ -61,7 +63,15 @@ describe('FileStorageService', () => {
 
             fs.promises.stat.mockResolvedValue({ isDirectory: () => true });
 
-            const writeStream = { write: jest.fn((_, cb) => cb(null)), end: jest.fn() };
+            const writeStream = {
+                end: jest.fn(),
+                on: jest.fn((event, handler) => {
+                    if (event === 'finish') {
+                        handler();
+                    }
+                    return writeStream;
+                })
+            };
             fs.createWriteStream.mockReturnValue(writeStream);
 
             const id = await svc.store({ tenantId: 'tenant', data: Buffer.from('data') });
@@ -69,8 +79,8 @@ describe('FileStorageService', () => {
             expect(id).toBe('uuid-1');
             expect(fs.promises.stat).toHaveBeenCalledWith('/root/tenant');
             expect(fs.createWriteStream).toHaveBeenCalledWith('/root/tenant/uuid-1');
-            expect(writeStream.write).toHaveBeenCalledWith(Buffer.from('data'), expect.any(Function));
-            expect(log.debug).toHaveBeenCalledWith('Data written');
+            expect(writeStream.end).toHaveBeenCalledWith(Buffer.from('data'));
+            expect(log.debug).toHaveBeenCalledWith('Data written to [%s]', '/root/tenant/uuid-1');
         });
 
         it('creates directory when stat fails and then writes', async () => {
@@ -79,7 +89,15 @@ describe('FileStorageService', () => {
             fs.promises.stat.mockRejectedValue(Object.assign(new Error('no dir'), { code: 'ENOENT' }));
             fs.promises.mkdir.mockResolvedValue();
 
-            const writeStream = { write: jest.fn((_, cb) => cb(null)), end: jest.fn() };
+            const writeStream = {
+                end: jest.fn(),
+                on: jest.fn((event, handler) => {
+                    if (event === 'finish') {
+                        handler();
+                    }
+                    return writeStream;
+                })
+            };
             fs.createWriteStream.mockReturnValue(writeStream);
 
             const id = await svc.store({ tenantId: 'tenant', data: 'x' });
@@ -91,7 +109,15 @@ describe('FileStorageService', () => {
             const svc = buildService();
             fs.promises.stat.mockResolvedValue({ isDirectory: () => true });
 
-            const writeStream = { write: jest.fn((_, cb) => cb(new Error('disk full'))), end: jest.fn() };
+            const writeStream = {
+                end: jest.fn(),
+                on: jest.fn((event, handler) => {
+                    if (event === 'error') {
+                        handler(new Error('disk full'));
+                    }
+                    return writeStream;
+                })
+            };
             fs.createWriteStream.mockReturnValue(writeStream);
 
             await expect(svc.store({ tenantId: 'tenant', data: 'x' })).rejects.toThrow(
@@ -111,6 +137,29 @@ describe('FileStorageService', () => {
             );
             expect(log.error).toHaveBeenCalledWith(expect.any(Error), 'Got error storing data');
             expect(fs.createWriteStream).not.toHaveBeenCalled();
+        });
+
+        it('stores data as stream', async () => {
+            const svc = buildService();
+
+            fs.promises.stat.mockResolvedValue({ isDirectory: () => true });
+
+            const writeStream = new PassThrough();
+            let writtedData = '';
+            writeStream.on('data', chunk => {
+                writtedData += chunk.toString();
+            });
+
+            fs.createWriteStream.mockReturnValue(writeStream);
+
+            const request = Readable.from([Buffer.from('text 1'), Buffer.from(' '), Buffer.from('text 2')]);
+            const id = await svc.store({ tenantId: 'tenant', data: request });
+
+            expect(id).toBe('uuid-1');
+            expect(writtedData).toBe('text 1 text 2');
+            expect(fs.promises.stat).toHaveBeenCalledWith('/root/tenant');
+            expect(fs.createWriteStream).toHaveBeenCalledWith('/root/tenant/uuid-1');
+            expect(log.debug).toHaveBeenCalledWith('Data written to [%s]', '/root/tenant/uuid-1');
         });
     });
 
@@ -171,6 +220,23 @@ describe('FileStorageService', () => {
             fs.promises.rename.mockRejectedValue(new Error('cannot rename file'));
             await expect(svc.moveFile('t1', 'f1', 'f2')).rejects.toThrow();
             expect(fs.promises.rename).toHaveBeenCalledWith('/root/t1/f1', '/root/t1/f2');
+        });
+    });
+
+    describe('deleteFile', () => {
+        it('deletes file from filesystem', async () => {
+            const svc = buildService();
+            fs.promises.unlink.mockResolvedValue();
+            await svc.deleteFile('t1', 'f1');
+            expect(fs.promises.unlink).toHaveBeenCalledWith('/root/t1/f1');
+            expect(log.info).toHaveBeenCalledWith('Deleted file [%s]', '/root/t1/f1');
+        });
+
+        it('rejects when unlink throws', async () => {
+            const svc = buildService();
+            fs.promises.unlink.mockRejectedValue(new Error('ENOENT'));
+            await expect(svc.deleteFile('t1', 'f1')).rejects.toThrow('Error deleting file: ENOENT');
+            expect(log.error).toHaveBeenCalledWith(expect.any(Error), 'Error deleting file');
         });
     });
 

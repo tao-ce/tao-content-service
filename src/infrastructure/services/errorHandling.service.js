@@ -4,13 +4,28 @@
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-TAO-Commercial-License
 
 const { log } = require('./logger.service');
+const { shutdownOtel } = require('../../instrumentation/otel');
+
+let isShuttingDown = false;
+
+async function gracefulShutdown(exitCode = 0) {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+
+    try {
+        const timeout = new Promise(resolve => setTimeout(resolve, 500));
+        await Promise.race([shutdownOtel(), timeout]);
+    } catch (err) {
+        log.error(`Error during OTEL shutdown: ${err.message}`);
+    } finally {
+        process.exit(exitCode);
+    }
+}
 
 const handleSignal = (signal, server) => () => {
     log.info(`signal [${signal}] received on process [${process.pid}], closing server.`);
-    server.close(() => process.exit(0));
-    setTimeout(() => {
-        process.exit(0);
-    }, 1000).unref();
+    server.close(() => gracefulShutdown(0));
+    setTimeout(() => gracefulShutdown(0), 1000).unref();
 };
 
 function handleUncaughtException(err, origin) {

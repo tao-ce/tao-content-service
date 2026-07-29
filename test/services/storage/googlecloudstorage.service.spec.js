@@ -30,6 +30,7 @@ jest.mock('@google-cloud/storage', () => {
     const createReadStreamMock = jest.fn();
     const moveMock = jest.fn();
     const existsMock = jest.fn();
+    const deleteMock = jest.fn();
 
     // expose mocks to the test via outer var
     storageSdkMocks.bucketMock = bucketMock;
@@ -41,6 +42,7 @@ jest.mock('@google-cloud/storage', () => {
     storageSdkMocks.createReadStreamMock = createReadStreamMock;
     storageSdkMocks.moveMock = moveMock;
     storageSdkMocks.existsMock = existsMock;
+    storageSdkMocks.deleteMock = deleteMock;
 
     const Storage = jest.fn().mockImplementation(() => ({
         bucket: bucketMock
@@ -87,6 +89,8 @@ describe('GoogleCloudStorageService', () => {
         storageSdkMocks.downloadMock.mockResolvedValue([Buffer.from('data')]);
         storageSdkMocks.existsMock.mockResolvedValue([true]);
 
+        storageSdkMocks.deleteMock.mockResolvedValue();
+
         storageSdkMocks.fileMock.mockReturnValue({
             save: storageSdkMocks.saveMock,
             getSignedUrl: storageSdkMocks.getSignedUrlMock,
@@ -94,7 +98,8 @@ describe('GoogleCloudStorageService', () => {
             download: storageSdkMocks.downloadMock,
             createReadStream: storageSdkMocks.createReadStreamMock,
             move: storageSdkMocks.moveMock,
-            exists: storageSdkMocks.existsMock
+            exists: storageSdkMocks.existsMock,
+            delete: storageSdkMocks.deleteMock
         });
 
         storageSdkMocks.bucketMock.mockReturnValue({ file: storageSdkMocks.fileMock });
@@ -267,6 +272,24 @@ describe('GoogleCloudStorageService', () => {
             const svc = buildService();
             storageSdkMocks.moveMock.mockRejectedValue(new Error('move failed'));
             await expect(svc.moveFile('tenant', 'tenant/file', 'tenant/newfile')).rejects.toThrow('move failed');
+        });
+    });
+
+    describe('deleteFile', () => {
+        it('deletes file from GCP bucket', async () => {
+            const svc = buildService();
+            await svc.deleteFile('tenant', 'tenant/file');
+            expect(storageSdkMocks.bucketMock).toHaveBeenCalledWith('my-bucket');
+            expect(storageSdkMocks.fileMock).toHaveBeenCalledWith('my-dir/tenant/file');
+            expect(storageSdkMocks.deleteMock).toHaveBeenCalled();
+            expect(log.info).toHaveBeenCalledWith('Deleted resource from GCP [%s]', 'tenant/file');
+        });
+
+        it('rejects when delete throws', async () => {
+            const svc = buildService();
+            storageSdkMocks.deleteMock.mockRejectedValueOnce(new Error('delete failed'));
+            await expect(svc.deleteFile('tenant', 'tenant/file')).rejects.toThrow('delete failed');
+            expect(log.error).toHaveBeenCalledWith(expect.any(Error), 'Error deleting file from GCP');
         });
     });
 

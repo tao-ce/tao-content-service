@@ -22,6 +22,7 @@ describe('ElasticsearchAssetRepository', () => {
             search: jest.fn(),
             count: jest.fn(),
             index: jest.fn(),
+            delete: jest.fn(),
             findByVirtualPath: jest.fn()
         };
 
@@ -237,6 +238,48 @@ describe('ElasticsearchAssetRepository', () => {
             expect(result).toBe(expectedCount);
 
             expect(elasticsearchClientMock.count).toHaveBeenCalledWith(expect.any(Object));
+        });
+    });
+
+    describe('deleteByVirtualPath', () => {
+        it('should delete asset and return it when found', async () => {
+            const tenantId = 'test_tenant';
+            const virtualPath = '/test/path';
+            const expectedAsset = {
+                id: '1',
+                type: 'test_type',
+                virtualPath,
+                creationTimestamp: '123465',
+                storagePath: '/path',
+                storageType: 'file',
+                tenantId: 'tenant',
+                driverId: 'file'
+            };
+
+            elasticsearchClientMock.search.mockResolvedValue({
+                hits: { hits: [{ _id: '1', _source: expectedAsset }] }
+            });
+            elasticsearchClientMock.delete.mockResolvedValue({});
+
+            const result = await elasticsearchAssetRepository.deleteByVirtualPath(tenantId, virtualPath);
+
+            expect(result).toEqual(expectedAsset);
+            expect(elasticsearchClientMock.delete).toHaveBeenCalledWith({
+                index: indexName,
+                id: '1',
+                refresh: true
+            });
+        });
+
+        it('should return null when asset not found', async () => {
+            elasticsearchClientMock.search.mockResolvedValue({
+                hits: { hits: [] }
+            });
+
+            const result = await elasticsearchAssetRepository.deleteByVirtualPath('tenant', '/nonexistent');
+
+            expect(result).toBeNull();
+            expect(elasticsearchClientMock.delete).not.toHaveBeenCalled();
         });
     });
 

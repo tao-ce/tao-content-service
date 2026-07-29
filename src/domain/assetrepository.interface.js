@@ -104,6 +104,18 @@ class AssetRepositoryInterface {
     }
 
     /**
+     * @summary Deletes an asset by its virtual path.
+     *
+     * @param {string} tenantId Tenant the data belongs to
+     * @param {string} virtualPath Virtual path of the asset to delete
+     *
+     * @return {Promise<?Asset>} The deleted asset, or null if not found
+     */
+    deleteByVirtualPath(tenantId, virtualPath) {
+        throw new Error('deleteByVirtualPath() must be overloaded by child classes');
+    }
+
+    /**
      * @summary Creates or updates the data for a given asset.
      *
      * @param {Asset} asset Asset instance to persist
@@ -112,6 +124,26 @@ class AssetRepositoryInterface {
      */
     persist(asset) {
         throw new Error('persist() must be overloaded by child classes');
+    }
+
+    /**
+     * @param {Object} condition
+     * @param {string} condition.tenantId
+     * @param {string} [condition.userId]
+     * @returns {Promise<Asset[]>}
+     */
+    findBy(condition) {
+        throw new Error('findBy() must be overloaded by child classes');
+    }
+
+    /**
+     * @param {Object} options
+     * @param {Object} options.changes
+     * @param {Object} options.condition
+     * @returns {Promise<void>}
+     */
+    updateBy({ changes, condition }) {
+        throw new Error('updateBy() must be overloaded by child classes');
     }
 }
 

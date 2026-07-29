@@ -35,6 +35,16 @@ class AbstractController {
         return strValue.trim() === strValue ? strValue : null;
     }
 
+    /**
+     * Returns metadata header as JSON string.
+     *
+     * @param {import('express').Request} request
+     * @returns {string|null}
+     */
+    getMetadataHeader(request) {
+        return request.get('x-metadata')?.trim() || null;
+    }
+
     getTenantId(request) {
         if (!('tenantId' in request.params) || request.params['tenantId'].toString().trim().length === 0) {
             return null;

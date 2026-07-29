@@ -3,7 +3,8 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-TAO-Commercial-License
 
-const storageFactoryService = require('../../infrastructure/services/storage/storagefactory.service');
+const { log } = require('../../infrastructure/services/logger.service.js');
+const storageFactoryService = require('../../infrastructure/services/storage/storagefactory.service.js');
 const { getFolderPath } = require('../../infrastructure/services/util/paths.util.js');
 
 class UploadService {
@@ -61,12 +62,15 @@ class UploadService {
             ? await this.#contentExtractorService.extract(contentType, data)
             : null;
 
+        let existingAsset;
         if (assetId) {
-            const existingAsset = await this.getAsset(tenantId, assetId);
+            existingAsset = await this.getAsset(tenantId, assetId);
             filePath ??= existingAsset?.storagePath?.split('/').slice(1).join('/');
         }
 
-        const storageDriver = storageFactoryService.createStorageDriver({ driverId });
+        const storageDriver = storageFactoryService.createStorageDriver({
+            driverId: existingAsset?.driverId || driverId
+        });
 
         const promises = [storageDriver.store({ tenantId, data, contentType, filePath })];
 
@@ -90,7 +94,8 @@ class UploadService {
             storageType: storageDriver.getName(),
             driverId: storageDriver.getId(),
             creationTimestamp: new Date().toISOString(),
-            metadata
+            metadata,
+            referenceId: metadata?.referenceId || null
         };
 
         if (extractContent) {
@@ -144,11 +149,12 @@ class UploadService {
      * @return {Promise<?string>} Public URL to retrieve the data
      */
     getPublicUrl({ asset, ttl, driverId, signUrl = true, routeViaCdn = false }) {
+        log.debug('Getting public URL for asset ID: %s with driverId: %s', asset?.id, driverId);
         if (asset !== null) {
             const fileName = asset['virtualPath']?.split('/').pop() ?? '';
             const { tenantId, storagePath } = asset;
 
-            return storageFactoryService.createStorageDriver({ driverId }).getPublicUrl({
+            return storageFactoryService.createStorageDriver({ driverId: asset.driverId || driverId }).getPublicUrl({
                 tenantId,
                 storagePath,
                 fileName,
@@ -173,6 +179,39 @@ class UploadService {
      */
     getFileStream({ driverId, tenantId, storagePath }) {
         return storageFactoryService.createStorageDriver({ driverId }).getFileStream(tenantId, storagePath);
+    }
+
+    /**
+     * Deletes an asset by its virtual path: removes the file from storage
+     * and the metadata from the index.
+     *
+     * @param {string} tenantId Tenant the asset belongs to
+     * @param {string} virtualPath Virtual path of the asset
+     * @return {Promise<?object>} The deleted asset, or null if not found
+     */
+    async deleteAsset(tenantId, virtualPath) {
+        const asset = await this.#assetRepository.deleteByVirtualPath(tenantId, virtualPath);
+        if (!asset) {
+            return null;
+        }
+
+        const storageDriver = storageFactoryService.createStorageDriver({ driverId: asset.driverId });
+
+        try {
+            await storageDriver.deleteFile(tenantId, asset.storagePath);
+        } catch (err) {
+            log.error(err, 'Failed to delete file from storage (asset index entry already removed)');
+        }
+
+        if (asset.extractedContentStoragePath) {
+            try {
+                await storageDriver.deleteFile(tenantId, asset.extractedContentStoragePath);
+            } catch (err) {
+                log.error(err, 'Failed to delete extracted content from storage');
+            }
+        }
+
+        return asset;
     }
 
     /**

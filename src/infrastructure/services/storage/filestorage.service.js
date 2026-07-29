@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { log } = require('../logger.service');
 const { getFolderPath } = require('../util/paths.util.js');
+const { isReadable } = require('node:stream');
 
 class FileStorageService extends StorageDriverInterface {
     /** @type string */
@@ -67,19 +68,25 @@ class FileStorageService extends StorageDriverInterface {
 
             return await new Promise((resolve, reject) => {
                 const stream = fs.createWriteStream(fullPath);
-
-                stream.write(data, err => {
-                    if (err) {
-                        log.error(err, 'Error writing data');
-                        reject(new Error('Failed to write data: ' + err.message));
-                        return;
-                    }
-
-                    log.debug('Data written');
+                stream.on('finish', () => {
+                    log.debug('Data written to [%s]', fullPath);
                     resolve(storagePath);
                 });
 
-                stream.end();
+                stream.on('error', err => {
+                    log.error(err, 'Error writing data');
+                    reject(new Error('Failed to write data: ' + err.message));
+                });
+
+                if (isReadable(data)) {
+                    data.on('error', err => {
+                        stream.destroy(err);
+                    });
+
+                    data.pipe(stream);
+                } else {
+                    stream.end(data);
+                }
             });
         } catch (err) {
             log.error(err, 'Got error storing data');
@@ -136,6 +143,22 @@ class FileStorageService extends StorageDriverInterface {
             `${this.#rootDirectory}/${tenantId}/${storagePath}`,
             `${this.#rootDirectory}/${tenantId}/${newStoragePath}`
         );
+    }
+
+    /**
+     * @inheritDoc
+     *
+     * @return {Promise<void>}
+     */
+    async deleteFile(tenantId, storagePath) {
+        const fullPath = `${this.#rootDirectory}/${tenantId}/${storagePath}`;
+        try {
+            await fs.promises.unlink(fullPath);
+            log.info('Deleted file [%s]', fullPath);
+        } catch (error) {
+            log.error(error, 'Error deleting file');
+            throw new Error('Error deleting file: ' + error.message, { cause: error });
+        }
     }
 
     #ensureDirectoryExists(directory) {

@@ -45,7 +45,7 @@ class ContentService {
             return null;
         }
 
-        const storageDriver = storageFactoryService.createStorageDriver({ driverId });
+        const storageDriver = storageFactoryService.createStorageDriver({ driverId: asset.driverId || driverId });
         const content = await storageDriver.getContent(asset['tenantId'], asset['storagePath']);
 
         log.info(`Successfully retrieved content for tenant: ${tenantId}, path: ${virtualPath}`);

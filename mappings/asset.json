@@ -48,6 +48,12 @@
                     "description-detail": "This is an arbitrary string"
                 }
             },
+            "referenceId": {
+                "type": "keyword",
+                "meta": {
+                    "description": "External reference ID used by Rostering API"
+                }
+            },
             "virtualFolder": {
                 "type": "keyword",
                 "meta": {

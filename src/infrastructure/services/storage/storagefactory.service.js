@@ -6,6 +6,7 @@
 const FileStorageService = require('./filestorage.service');
 const GoogleCloudStorageService = require('./googlecloudstorage.service');
 const storageConfig = require('../../configs/storage.config');
+const { log } = require('../logger.service');
 
 /**
  * @param {object} params
@@ -14,6 +15,7 @@ const storageConfig = require('../../configs/storage.config');
  */
 function createStorageDriver({ driverId = storageConfig.config.defaultDriver } = {}) {
     const driver = storageConfig.config.drivers[driverId];
+    log.debug(`Created driver: %o`, driver);
 
     if (!driver) {
         throw new Error(`Driver ${driverId} not supported`);

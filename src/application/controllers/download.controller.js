@@ -46,6 +46,7 @@ class DownloadController extends AbstractController {
         this.#uploadService
             .getAssetByVirtualPath(tenantId, virtualPath)
             .then(asset => {
+                log.debug('getExtractedContent asset: %o', asset);
                 if (asset === null) {
                     response.status(404).json({
                         error: 'Asset not found'
@@ -62,8 +63,9 @@ class DownloadController extends AbstractController {
                     return;
                 }
 
+                log.debug('getExtractedContent driver:', asset.driverId || driverId);
                 storageFactoryService
-                    .createStorageDriver({ driverId })
+                    .createStorageDriver({ driverId: asset.driverId || driverId })
                     .getContent(tenantId, asset.extractedContentStoragePath)
                     .then(content => {
                         response.status(200).send(content.toString());

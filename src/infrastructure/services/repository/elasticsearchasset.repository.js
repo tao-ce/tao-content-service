@@ -259,6 +259,38 @@ class ElasticsearchAssetRepository extends AssetRepositoryInterface {
     /**
      * @inheritDoc
      *
+     * @return {Promise<?Asset>}
+     */
+    async deleteByVirtualPath(tenantId, virtualPath) {
+        const asset = await this.findByVirtualPath(tenantId, virtualPath);
+        if (!asset) {
+            return null;
+        }
+
+        try {
+            await this.#elasticsearchClient.delete({
+                index: this.#indexName,
+                id: asset.id,
+                refresh: this.#immediateRefresh
+            });
+        } catch (e) {
+            this.#logger.error(
+                e,
+                'Failed to delete asset %s (tenantId: %s, virtualPath: %s) from Elasticsearch',
+                asset.id,
+                tenantId,
+                virtualPath
+            );
+            return null;
+        }
+
+        this.#logger.info('Deleted asset %s from Elasticsearch', asset.id);
+        return asset;
+    }
+
+    /**
+     * @inheritDoc
+     *
      * @return {Promise<Asset>}
      */
     persist(asset) {
@@ -282,6 +314,49 @@ class ElasticsearchAssetRepository extends AssetRepositoryInterface {
                 return this.#doPersist(theId, asset);
             } else {
                 throw new Error(`The provided path "${path}" is already in use for this tenant`);
+            }
+        });
+    }
+
+    /**
+     * @param {Object} condition
+     * @param {string} [condition.tenantId]
+     * @param {string} [condition.userId]
+     * @param {string} [condition.virtualFolder]
+     * @returns {Promise<Asset[]>}
+     */
+    findBy(condition) {
+        return this.#elasticsearchClient
+            .search(this.#buildSearchCommand(condition, { count: 10000 }))
+            .then(response => {
+                if (!response.hits?.hits?.length) {
+                    return [];
+                }
+                return response.hits.hits.map(itemData => toAsset({ id: itemData._id, ...itemData._source }));
+            });
+    }
+
+    /**
+     * @param {Object} options
+     * @param {Object} options.changes - Fields to update (e.g. { userId: 'admin' })
+     * @param {Object} options.condition - Filter criteria (e.g. { tenantId: '1', userId: 'user-1' })
+     * @returns {Promise<Object>}
+     */
+    updateBy({ changes, condition }) {
+        const mustClauses = Object.entries(condition).map(([field, value]) => ({ term: { [field]: value } }));
+        const scriptParts = Object.keys(changes).map(field => `ctx._source.${field} = params.${field}`);
+
+        return this.#elasticsearchClient.updateByQuery({
+            index: this.#indexName,
+            refresh: this.#immediateRefresh,
+            body: {
+                query: {
+                    bool: { must: mustClauses }
+                },
+                script: {
+                    source: scriptParts.join('; '),
+                    params: changes
+                }
             }
         });
     }
@@ -467,17 +542,12 @@ class ElasticsearchAssetRepository extends AssetRepositoryInterface {
      * @return {Object} POJO to use in Elasticsearch requests
      */
     #getValuesFromAssetInstance(asset) {
-        let userId = null;
-
-        if ('userId' in asset) {
-            userId = asset['userId'];
-        }
-
         return {
             tenantId: asset['tenantId'],
-            userId: userId,
+            userId: asset['userId'] || null,
             type: asset['type'],
             virtualPath: asset['virtualPath'],
+            referenceId: asset['referenceId'] || asset['metadata']?.['referenceId'] || null,
             virtualFolder: asset['virtualFolder'],
             storagePath: asset['storagePath'],
             storageType: asset['storageType'],

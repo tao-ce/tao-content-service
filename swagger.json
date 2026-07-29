@@ -869,6 +869,79 @@
                 }
             }
         },
+        "/api/v1/files/{tenantId}/{virtualPath}": {
+            "delete": {
+                "summary": "Delete a file",
+                "description": "Deletes an asset identified by tenant ID and virtual path. Removes the asset from storage and the repository.",
+                "operationId": "deleteFile",
+                "tags": ["Files"],
+                "parameters": [
+                    {
+                        "name": "tenantId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Tenant ID",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "virtualPath",
+                        "in": "path",
+                        "required": true,
+                        "description": "Virtual path of the asset to delete",
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Asset deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": { "type": "string" },
+                                        "id": { "type": "string" }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (missing or invalid tenantId or virtualPath)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/badRequestResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Asset not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": { "type": "string" }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/serverErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/files/stream/{tenantId}/{storagePath}": {
             "get": {
                 "summary": "Stream file content",
